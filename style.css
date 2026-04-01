@@ -1,0 +1,158 @@
+/*
+ * EcoMatch PR — style.css
+ * ─────────────────────────────────────────────────────────────
+ * Estilos customizados que complementam o Tailwind CSS.
+ * O Tailwind cobre a maior parte do layout via classes utilitárias
+ * no HTML. Este arquivo contém:
+ *   1. Reset de fonte global
+ *   2. Componente radio-card (seletor do formulário)
+ *   3. Gradiente do hero
+ *   4. Keyframes de animação (declarados aqui para funcionar em
+ *      elementos inseridos dinamicamente via JS — o Tailwind CDN
+ *      só injeta keyframes que detecta no HTML estático)
+ *   5. Classes de animação para cards e abas
+ *   6. Estilo da lista de benefícios
+ * ─────────────────────────────────────────────────────────────
+ */
+
+/* ─── 1. FONTE GLOBAL ───────────────────────────────────────── */
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+
+/* ─── 2. RADIO-CARD ─────────────────────────────────────────── */
+/*
+ * Componente usado nas 3 perguntas do formulário.
+ * Esconde o input nativo e estiliza o <label> como card clicável.
+ * O estado "selecionado" é aplicado via CSS adjacente (+).
+ */
+.radio-card input[type="radio"] {
+  display: none;
+}
+
+.radio-card label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #fff;
+  text-align: center;
+  min-height: 90px;
+}
+
+.radio-card label:hover {
+  border-color: #1E3A5F;                          /* navy */
+  box-shadow: 0 4px 12px rgba(30, 58, 95, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Estado selecionado: borda verde + fundo suave */
+.radio-card input[type="radio"]:checked + label {
+  border-color: #1B4332;                          /* forest */
+  background: linear-gradient(135deg, #EAF3EE 0%, #f0f9f4 100%);
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15), 0 4px 16px rgba(27, 67, 50, 0.12);
+}
+
+
+/* ─── 3. HERO GRADIENT ──────────────────────────────────────── */
+/*
+ * Gradiente diagonal usado na seção principal (Hero).
+ * navy → forest → forest-500
+ */
+.hero-gradient {
+  background: linear-gradient(135deg, #1E3A5F 0%, #1B4332 60%, #2D8456 100%);
+}
+
+
+/* ─── 4. KEYFRAMES ──────────────────────────────────────────── */
+/*
+ * IMPORTANTE: estes keyframes precisam estar em CSS puro.
+ * O Tailwind CDN só injeta keyframes que detecta no HTML estático.
+ * Como os cards de resultado são criados via innerHTML (JS), o
+ * Tailwind não os vê e o keyframe nunca seria registrado —
+ * deixando os elementos travados em opacity: 0 para sempre.
+ */
+
+@keyframes fadeInUp {
+  0%   { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px);   }
+  50%       { transform: translateY(-12px); }
+}
+
+@keyframes pulse2 {
+  0%, 100% { opacity: 1;   }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes spinSlow {
+  0%   { transform: rotate(0deg);   }
+  100% { transform: rotate(360deg); }
+}
+
+
+/* ─── 5. CLASSES DE ANIMAÇÃO ────────────────────────────────── */
+
+/* Entrada dos cards de resultado gerados via JS */
+.result-card-enter {
+  opacity: 0;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Ícones flutuantes decorativos no hero */
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Texto pulsante no overlay de loading */
+.animate-pulse2 {
+  animation: pulse2 1.4s ease-in-out infinite;
+}
+
+/* Spinner do overlay de loading */
+.animate-spin-slow {
+  animation: spinSlow 1s linear infinite;
+}
+
+
+/* ─── 6. ABAS DOS CARDS DE RESULTADO ────────────────────────── */
+/*
+ * O painel inativo fica oculto via display:none.
+ * Ao receber a classe .active (adicionada via JS em switchTab()),
+ * o painel aparece com animação fadeInUp.
+ */
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+
+/* ─── 7. LISTA DE BENEFÍCIOS ────────────────────────────────── */
+/*
+ * Usada no painel de Viabilidade Financeira dos cards de resultado.
+ * Cada item da coluna "Beneficios" da planilha vira um <li>.
+ */
+.beneficios-lista li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.beneficios-lista li:last-child {
+  border-bottom: none;
+}
