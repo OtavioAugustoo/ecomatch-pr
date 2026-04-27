@@ -1,5 +1,5 @@
 /*
- * EcoMatch PR — style.css
+ * Eco Impact — style.css
  * ─────────────────────────────────────────────────────────────
  * Estilos customizados que complementam o Tailwind CSS.
  * O Tailwind cobre a maior parte do layout via classes utilitárias
@@ -23,7 +23,7 @@ body {
 
 /* ─── 2. RADIO-CARD ─────────────────────────────────────────── */
 /*
- * Componente usado nas 3 perguntas do formulário.
+ * Componente usado nas 5 perguntas do formulário.
  * Esconde o input nativo e estiliza o <label> como card clicável.
  * O estado "selecionado" é aplicado via CSS adjacente (+).
  */
@@ -127,7 +127,8 @@ body {
 
 /* ─── 6. ABAS DOS CARDS DE RESULTADO ────────────────────────── */
 /*
- * O painel inativo fica oculto via display:none.
+ * Os cards agora têm 3 abas: Visão Geral, Financeiro & Elegibilidade,
+ * Análise Jurídica GSGA. O painel inativo fica oculto via display:none.
  * Ao receber a classe .active (adicionada via JS em switchTab()),
  * o painel aparece com animação fadeInUp.
  */
@@ -143,8 +144,8 @@ body {
 
 /* ─── 7. LISTA DE BENEFÍCIOS ────────────────────────────────── */
 /*
- * Usada no painel de Viabilidade Financeira dos cards de resultado.
- * Cada item da coluna "Beneficios" da planilha vira um <li>.
+ * Mantida para compatibilidade com cards legados.
+ * Cada item separado por "|" na planilha vira um <li>.
  */
 .beneficios-lista li {
   padding: 0.5rem 0;

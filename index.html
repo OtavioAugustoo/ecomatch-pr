@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EcoMatch PR — Capital Catalítico para PMEs Sustentáveis</title>
+  <title>Eco Impact — Capital para quem transforma</title>
+  <meta name="description" content="Plataforma que conecta PMEs a fundos de capital privado de impacto, grants e linhas de crédito sustentável — com análise jurídica do escritório GSGA." />
 
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,11 +14,6 @@
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!--
-    Tailwind config: define as cores e animações customizadas do projeto.
-    Precisa estar inline (antes do style.css) para que o Tailwind CDN
-    processe as classes utilitárias corretas ao inicializar.
-  -->
   <script>
     tailwind.config = {
       theme: {
@@ -37,8 +33,6 @@
               600: '#1E3A5F', 700: '#182F4E', 800: '#12243C', 900: '#0C192B',
             },
           },
-          // Nota: os keyframes de animação também estão declarados em style.css
-          // para garantir que funcionem em elementos inseridos via JS.
           keyframes: {
             fadeInUp: { '0%': { opacity:'0', transform:'translateY(24px)' }, '100%': { opacity:'1', transform:'translateY(0)' } },
             float:    { '0%,100%': { transform:'translateY(0px)' }, '50%': { transform:'translateY(-12px)' } },
@@ -56,7 +50,6 @@
     };
   </script>
 
-  <!-- Estilos customizados do projeto -->
   <link rel="stylesheet" href="style.css" />
 </head>
 
@@ -78,8 +71,8 @@
             </svg>
           </div>
           <div>
-            <span class="text-lg font-extrabold text-navy">EcoMatch</span>
-            <span class="text-lg font-extrabold text-forest"> PR</span>
+            <span class="text-lg font-extrabold text-navy">Eco Impact</span>
+            <p class="text-xs text-gray-400 leading-none -mt-0.5">Capital para quem transforma</p>
           </div>
         </a>
 
@@ -129,17 +122,17 @@
 
         <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 mb-6">
           <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-          <span class="text-white/90 text-xs font-medium tracking-wide uppercase">Plataforma de Capital Catalítico</span>
+          <span class="text-white/90 text-xs font-medium tracking-wide uppercase">Plataforma de Capital de Impacto</span>
         </div>
 
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
-          Desbloqueie o
-          <span class="text-green-300"> Capital Catalítico</span>
-          para o seu Negócio Sustentável
+          Encontre o
+          <span class="text-green-300"> Financiamento Certo</span>
+          para seu Negócio de Impacto
         </h1>
 
         <p class="text-lg sm:text-xl text-white/75 leading-relaxed mb-10 max-w-xl">
-          Mapeamento inteligente de recursos e segurança jurídica para PMEs de Curitiba. Conectamos seu perfil às melhores linhas de financiamento sustentável em segundos.
+          Diagnóstico inteligente que cruza o perfil da sua PME com fundos de capital privado de impacto, grants e linhas de crédito sustentável — com análise jurídica do escritório GSGA.
         </p>
 
         <div class="flex flex-col sm:flex-row gap-4">
@@ -159,16 +152,18 @@
 
         <div class="mt-12 pt-8 border-t border-white/15">
           <p class="text-white/50 text-xs uppercase tracking-widest mb-4 font-medium">Ecossistema de parceiros</p>
-          <div class="flex flex-wrap gap-x-8 gap-y-3 items-center">
-            <span class="text-white/60 text-sm font-semibold">BRDE</span>
+          <div class="flex flex-wrap gap-x-6 gap-y-3 items-center">
+            <span class="text-white/60 text-sm font-semibold">Vox Capital</span>
             <span class="text-white/40 text-sm">|</span>
-            <span class="text-white/60 text-sm font-semibold">FINEP</span>
+            <span class="text-white/60 text-sm font-semibold">Rise Ventures</span>
             <span class="text-white/40 text-sm">|</span>
-            <span class="text-white/60 text-sm font-semibold">BNDES</span>
+            <span class="text-white/60 text-sm font-semibold">Blue like an Orange</span>
             <span class="text-white/40 text-sm">|</span>
-            <span class="text-white/60 text-sm font-semibold">GSGA Advogados</span>
+            <span class="text-white/60 text-sm font-semibold">Fundo Brasil</span>
             <span class="text-white/40 text-sm">|</span>
-            <span class="text-white/60 text-sm font-semibold">SEBRAE-PR</span>
+            <span class="text-white/60 text-sm font-semibold">FSA CAIXA</span>
+            <span class="text-white/40 text-sm">|</span>
+            <span class="text-white/60 text-sm font-semibold">GSGA</span>
           </div>
         </div>
 
@@ -187,31 +182,31 @@
         <div class="flex flex-col items-center text-center p-6 rounded-2xl bg-slate-50 border border-gray-100">
           <div class="w-12 h-12 rounded-full bg-forest-50 flex items-center justify-center mb-4">
             <svg class="w-6 h-6 text-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
             </svg>
           </div>
-          <p class="text-3xl font-extrabold text-navy mb-1">R$ 2,3 Bi</p>
-          <p class="text-sm text-gray-500 font-medium">em linhas de crédito mapeadas</p>
+          <p class="text-3xl font-extrabold text-navy mb-1">10 Fundos</p>
+          <p class="text-sm text-gray-500 font-medium">Mapeados e analisados pelo GSGA</p>
         </div>
 
         <div class="flex flex-col items-center text-center p-6 rounded-2xl bg-slate-50 border border-gray-100">
           <div class="w-12 h-12 rounded-full bg-navy-50 flex items-center justify-center mb-4">
             <svg class="w-6 h-6 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
           </div>
-          <p class="text-3xl font-extrabold text-navy mb-1">47 PMEs</p>
-          <p class="text-sm text-gray-500 font-medium">conectadas ao capital catalítico</p>
+          <p class="text-3xl font-extrabold text-navy mb-1">3 Modalidades</p>
+          <p class="text-sm text-gray-500 font-medium">Equity · Mezzanine · Grant</p>
         </div>
 
         <div class="flex flex-col items-center text-center p-6 rounded-2xl bg-slate-50 border border-gray-100">
           <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mb-4">
             <svg class="w-6 h-6 text-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
           </div>
-          <p class="text-3xl font-extrabold text-navy mb-1">92%</p>
-          <p class="text-sm text-gray-500 font-medium">taxa de aprovação em diagnósticos</p>
+          <p class="text-3xl font-extrabold text-navy mb-1">R$ 2,5 Bi+</p>
+          <p class="text-sm text-gray-500 font-medium">em Capital Disponível</p>
         </div>
 
       </div>
@@ -233,25 +228,35 @@
         </div>
         <h2 class="text-3xl sm:text-4xl font-extrabold text-navy mb-4">Diagnóstico Empresarial</h2>
         <p class="text-gray-500 text-base max-w-lg mx-auto">
-          Responda 3 perguntas e nossa IA identificará as melhores oportunidades de financiamento sustentável para o seu negócio.
+          Responda 5 perguntas e nossa IA identificará as melhores oportunidades de financiamento de impacto para o seu negócio.
         </p>
       </div>
 
-      <!-- Indicador de progresso -->
-      <div class="flex items-center justify-center gap-3 mb-8">
-        <div class="flex items-center gap-2">
+      <!-- Indicador de progresso — 5 passos -->
+      <div class="flex items-center justify-center gap-1.5 sm:gap-2 mb-8 overflow-x-auto pb-1">
+        <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
           <div id="step-1" class="w-8 h-8 rounded-full bg-navy text-white text-sm font-bold flex items-center justify-center transition-all">1</div>
           <span class="text-xs font-medium text-navy hidden sm:block">Setor</span>
         </div>
-        <div id="line-1-2" class="h-0.5 w-8 bg-gray-200 transition-all"></div>
-        <div class="flex items-center gap-2">
+        <div id="line-1-2" class="h-0.5 w-6 bg-gray-200 transition-all flex-shrink-0"></div>
+        <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
           <div id="step-2" class="w-8 h-8 rounded-full bg-gray-200 text-gray-400 text-sm font-bold flex items-center justify-center transition-all">2</div>
           <span id="step-2-label" class="text-xs font-medium text-gray-400 hidden sm:block">Porte</span>
         </div>
-        <div id="line-2-3" class="h-0.5 w-8 bg-gray-200 transition-all"></div>
-        <div class="flex items-center gap-2">
+        <div id="line-2-3" class="h-0.5 w-6 bg-gray-200 transition-all flex-shrink-0"></div>
+        <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
           <div id="step-3" class="w-8 h-8 rounded-full bg-gray-200 text-gray-400 text-sm font-bold flex items-center justify-center transition-all">3</div>
           <span id="step-3-label" class="text-xs font-medium text-gray-400 hidden sm:block">Desafio</span>
+        </div>
+        <div id="line-3-4" class="h-0.5 w-6 bg-gray-200 transition-all flex-shrink-0"></div>
+        <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+          <div id="step-4" class="w-8 h-8 rounded-full bg-gray-200 text-gray-400 text-sm font-bold flex items-center justify-center transition-all">4</div>
+          <span id="step-4-label" class="text-xs font-medium text-gray-400 hidden sm:block">Modalidade</span>
+        </div>
+        <div id="line-4-5" class="h-0.5 w-6 bg-gray-200 transition-all flex-shrink-0"></div>
+        <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+          <div id="step-5" class="w-8 h-8 rounded-full bg-gray-200 text-gray-400 text-sm font-bold flex items-center justify-center transition-all">5</div>
+          <span id="step-5-label" class="text-xs font-medium text-gray-400 hidden sm:block">Status</span>
         </div>
       </div>
 
@@ -262,7 +267,7 @@
           <!-- PERGUNTA 1: Setor de Atuação -->
           <fieldset>
             <legend class="text-base font-bold text-navy mb-1">
-              <span class="text-forest mr-2">01.</span>Setor de Atuação
+              <span class="text-forest mr-2">01.</span>Qual é o setor de atuação do seu negócio?
             </legend>
             <p class="text-sm text-gray-500 mb-4">Qual segmento melhor descreve a atividade principal da sua empresa?</p>
             <div class="grid grid-cols-2 gap-3">
@@ -288,10 +293,24 @@
                 </label>
               </div>
               <div class="radio-card">
+                <input type="radio" name="setor" id="setor-sau" value="saude" onchange="onSelectionChange()" />
+                <label for="setor-sau">
+                  <span class="text-2xl">💚</span>
+                  <span class="text-xs font-semibold text-gray-700 leading-tight">Saúde & Bem-estar</span>
+                </label>
+              </div>
+              <div class="radio-card">
+                <input type="radio" name="setor" id="setor-edu" value="educacao" onchange="onSelectionChange()" />
+                <label for="setor-edu">
+                  <span class="text-2xl">📚</span>
+                  <span class="text-xs font-semibold text-gray-700 leading-tight">Educação & Inclusão Social</span>
+                </label>
+              </div>
+              <div class="radio-card">
                 <input type="radio" name="setor" id="setor-serv" value="servicos" onchange="onSelectionChange()" />
                 <label for="setor-serv">
                   <span class="text-2xl">💼</span>
-                  <span class="text-xs font-semibold text-gray-700 leading-tight">Serviços</span>
+                  <span class="text-xs font-semibold text-gray-700 leading-tight">Serviços & Tecnologia</span>
                 </label>
               </div>
             </div>
@@ -302,15 +321,15 @@
           <!-- PERGUNTA 2: Porte da Empresa -->
           <fieldset>
             <legend class="text-base font-bold text-navy mb-1">
-              <span class="text-forest mr-2">02.</span>Porte da Empresa
+              <span class="text-forest mr-2">02.</span>Qual é o porte da sua empresa?
             </legend>
-            <p class="text-sm text-gray-500 mb-4">Qual é o porte da sua empresa conforme o faturamento anual?</p>
-            <div class="grid grid-cols-3 gap-3">
+            <p class="text-sm text-gray-500 mb-4">Conforme o faturamento anual bruto da empresa.</p>
+            <div class="grid grid-cols-2 gap-3">
               <div class="radio-card">
                 <input type="radio" name="porte" id="porte-micro" value="micro" onchange="onSelectionChange()" />
                 <label for="porte-micro">
                   <span class="text-2xl">🔹</span>
-                  <span class="text-xs font-semibold text-gray-700 leading-tight">Microempresa</span>
+                  <span class="text-xs font-semibold text-gray-700 leading-tight">MEI / Microempresa</span>
                   <span class="text-xs text-gray-400">até R$ 360k</span>
                 </label>
               </div>
@@ -330,6 +349,14 @@
                   <span class="text-xs text-gray-400">até R$ 300M</span>
                 </label>
               </div>
+              <div class="radio-card">
+                <input type="radio" name="porte" id="porte-grd" value="grande" onchange="onSelectionChange()" />
+                <label for="porte-grd">
+                  <span class="text-2xl">🏢</span>
+                  <span class="text-xs font-semibold text-gray-700 leading-tight">Grande Empresa</span>
+                  <span class="text-xs text-gray-400">acima de R$ 300M</span>
+                </label>
+              </div>
             </div>
           </fieldset>
 
@@ -338,7 +365,7 @@
           <!-- PERGUNTA 3: Principal Desafio -->
           <fieldset>
             <legend class="text-base font-bold text-navy mb-1">
-              <span class="text-forest mr-2">03.</span>Principal Desafio Hoje
+              <span class="text-forest mr-2">03.</span>Qual é seu principal desafio de crescimento?
             </legend>
             <p class="text-sm text-gray-500 mb-4">Qual obstáculo representa o maior gargalo para crescer com sustentabilidade?</p>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -366,6 +393,79 @@
             </div>
           </fieldset>
 
+          <hr class="border-gray-100" />
+
+          <!-- PERGUNTA 4: Modalidade de Apoio -->
+          <fieldset>
+            <legend class="text-base font-bold text-navy mb-1">
+              <span class="text-forest mr-2">04.</span>Que tipo de capital você está buscando?
+            </legend>
+            <p class="text-sm text-gray-500 mb-4">Selecione a modalidade de apoio que melhor se encaixa no momento da sua empresa.</p>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="radio-card">
+                <input type="radio" name="modalidade" id="modal-equity" value="equity" onchange="onSelectionChange()" />
+                <label for="modal-equity">
+                  <span class="text-2xl">💼</span>
+                  <span class="text-xs font-semibold text-gray-700 leading-tight">Equity / Participação societária</span>
+                </label>
+              </div>
+              <div class="radio-card">
+                <input type="radio" name="modalidade" id="modal-mez" value="mezzanine" onchange="onSelectionChange()" />
+                <label for="modal-mez">
+                  <span class="text-2xl">🔄</span>
+                  <span class="text-xs font-semibold text-gray-700 leading-tight">Mezzanine / Blended Finance</span>
+                </label>
+              </div>
+              <div class="radio-card">
+                <input type="radio" name="modalidade" id="modal-grant" value="grant" onchange="onSelectionChange()" />
+                <label for="modal-grant">
+                  <span class="text-2xl">🎁</span>
+                  <span class="text-xs font-semibold text-gray-700 leading-tight">Grant / Doação (não reembolsável)</span>
+                </label>
+              </div>
+              <div class="radio-card">
+                <input type="radio" name="modalidade" id="modal-qual" value="qualquer" onchange="onSelectionChange()" />
+                <label for="modal-qual">
+                  <span class="text-2xl">🔍</span>
+                  <span class="text-xs font-semibold text-gray-700 leading-tight">Qualquer modalidade</span>
+                </label>
+              </div>
+            </div>
+          </fieldset>
+
+          <hr class="border-gray-100" />
+
+          <!-- PERGUNTA 5: Status desejado -->
+          <fieldset>
+            <legend class="text-base font-bold text-navy mb-1">
+              <span class="text-forest mr-2">05.</span>Qual o status desejado da oportunidade?
+            </legend>
+            <p class="text-sm text-gray-500 mb-4">Filtre as oportunidades pela situação atual do processo seletivo.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="radio-card">
+                <input type="radio" name="status_filtro" id="status-aberto" value="aberto" onchange="onSelectionChange()" />
+                <label for="status-aberto">
+                  <span class="text-2xl">✅</span>
+                  <span class="text-xs font-semibold text-gray-700 leading-tight">Apenas oportunidades abertas agora</span>
+                </label>
+              </div>
+              <div class="radio-card">
+                <input type="radio" name="status_filtro" id="status-abrir" value="abrir" onchange="onSelectionChange()" />
+                <label for="status-abrir">
+                  <span class="text-2xl">📅</span>
+                  <span class="text-xs font-semibold text-gray-700 leading-tight">Abertas e a abrir em breve</span>
+                </label>
+              </div>
+              <div class="radio-card">
+                <input type="radio" name="status_filtro" id="status-todos" value="todos" onchange="onSelectionChange()" />
+                <label for="status-todos">
+                  <span class="text-2xl">🔍</span>
+                  <span class="text-xs font-semibold text-gray-700 leading-tight">Todas (incluindo fechadas)</span>
+                </label>
+              </div>
+            </div>
+          </fieldset>
+
           <!-- Botão de submissão -->
           <div class="pt-2">
             <button type="submit" id="btn-mapear" disabled
@@ -376,7 +476,7 @@
               </svg>
               Mapear Oportunidades com IA
             </button>
-            <p id="btn-hint" class="text-center text-xs text-gray-400 mt-3">Preencha as 3 perguntas para habilitar o mapeamento</p>
+            <p id="btn-hint" class="text-center text-xs text-gray-400 mt-3">Preencha as 5 perguntas para habilitar o mapeamento</p>
           </div>
 
         </form>
@@ -415,13 +515,9 @@
   <section id="resultado-section" class="hidden bg-slate-50 py-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
-      <!-- Cabeçalho preenchido por renderResultados() ou renderErro() -->
       <div id="resultado-header" class="text-center mb-8"></div>
-
-      <!-- Cards preenchidos por renderResultados() ou renderErro() -->
       <div id="resultados-container" class="space-y-6"></div>
 
-      <!-- Botão para reiniciar o diagnóstico -->
       <div class="mt-8 text-center">
         <button onclick="resetDiagnostico()"
           class="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm
@@ -445,17 +541,20 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
 
         <div>
-          <div class="flex items-center gap-2.5 mb-4">
+          <div class="flex items-center gap-2.5 mb-3">
             <div class="w-9 h-9 rounded-lg bg-forest flex items-center justify-center">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3s3 0 7 4c3.5 3.5 4 8 4 8s-4.5-.5-8-4C4 7 5 3 5 3z"/>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3c0 0 0 8 7 14"/>
               </svg>
             </div>
-            <span class="font-extrabold text-lg">EcoMatch PR</span>
+            <div>
+              <span class="font-extrabold text-lg">Eco Impact</span>
+              <p class="text-xs text-white/40 leading-none">Capital para quem transforma</p>
+            </div>
           </div>
           <p class="text-white/60 text-sm leading-relaxed">
-            Plataforma de mapeamento inteligente de capital catalítico para PMEs sustentáveis de Curitiba e região metropolitana.
+            Plataforma de diagnóstico inteligente que conecta PMEs a fundos de capital privado de impacto, grants e linhas de crédito sustentável — com análise jurídica do GSGA.
           </p>
         </div>
 
@@ -464,34 +563,31 @@
           <ul class="space-y-2.5">
             <li><a href="#diagnostico" class="text-white/60 text-sm hover:text-white transition-colors">Iniciar Diagnóstico</a></li>
             <li><a href="#sobre"       class="text-white/60 text-sm hover:text-white transition-colors">Sobre o Projeto</a></li>
-            <li><a href="#"            class="text-white/60 text-sm hover:text-white transition-colors">Linhas de Financiamento</a></li>
+            <li><a href="#"            class="text-white/60 text-sm hover:text-white transition-colors">Oportunidades de Financiamento</a></li>
             <li><a href="#"            class="text-white/60 text-sm hover:text-white transition-colors">Parceiros GSGA</a></li>
           </ul>
         </div>
 
         <div>
-          <h4 class="font-bold text-sm uppercase tracking-wide mb-4 text-white/80">Ecossistema</h4>
-          <ul class="space-y-2.5">
-            <li class="text-white/60 text-sm">BRDE — Banco Regional de Desenvolvimento</li>
-            <li class="text-white/60 text-sm">FINEP — Inovação e Pesquisa</li>
-            <li class="text-white/60 text-sm">GSGA — Gaia Silva Gaede Advogados</li>
-            <li class="text-white/60 text-sm">SEBRAE-PR</li>
+          <h4 class="font-bold text-sm uppercase tracking-wide mb-4 text-white/80">Ecossistema de parceiros</h4>
+          <ul class="space-y-2">
+            <li><a href="https://voxcapital.com.br" target="_blank" rel="noopener" class="text-white/60 text-sm hover:text-white transition-colors">Vox Capital</a></li>
+            <li><a href="https://riseventures.com.br" target="_blank" rel="noopener" class="text-white/60 text-sm hover:text-white transition-colors">Rise Ventures</a></li>
+            <li><a href="https://blueorange.com" target="_blank" rel="noopener" class="text-white/60 text-sm hover:text-white transition-colors">Blue like an Orange</a></li>
+            <li><a href="https://fundobrasil.org.br" target="_blank" rel="noopener" class="text-white/60 text-sm hover:text-white transition-colors">Fundo Brasil</a></li>
+            <li><a href="#" class="text-white/60 text-sm hover:text-white transition-colors">FSA CAIXA</a></li>
+            <li><a href="https://gsga.com.br" target="_blank" rel="noopener" class="text-white/60 text-sm hover:text-white transition-colors">GSGA — Gaia Silva Gaede Advogados</a></li>
           </ul>
         </div>
 
       </div>
       <div class="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p class="text-white/40 text-xs">© 2026 EcoMatch PR — Projeto de Extensão Universitária</p>
-        <p class="text-white/40 text-xs text-center sm:text-right">Protótipo funcional. Dados provenientes do Google Sheets EcoMatch PR.</p>
+        <p class="text-white/40 text-xs">© 2026 Eco Impact — Projeto de Extensão Universitária · Universidade Positivo</p>
+        <p class="text-white/40 text-xs text-center sm:text-right">Protótipo funcional · Dados via Google Sheets · Parceria GSGA</p>
       </div>
     </div>
   </footer>
 
-
-  <!--
-    script.js carregado no final do <body> para garantir que todos os
-    elementos do DOM já existam quando o JavaScript for executado.
-  -->
   <script src="script.js"></script>
 
 </body>

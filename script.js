@@ -1,19 +1,22 @@
 /**
- * EcoMatch PR — script.js
+ * Eco Impact — script.js
  * ─────────────────────────────────────────────────────────────
  * Toda a lógica de negócio da plataforma:
- *   1. Configuração das URLs de dados (Google Sheets / Apps Script)
- *   2. parseCSV()             — converte texto CSV em array de objetos
- *   3. fetchFinanciamentos()  — busca dados (Apps Script ou CSV direto)
- *   4. normalizeStr()         — normaliza strings para comparação flexível
- *   5. matchFinanciamentos()  — algoritmo de match Setor + Porte
- *   6. renderResultados()     — gera os cards de resultado no DOM
- *   7. renderErro()           — exibe cards de erro amigáveis
- *   8. escapeHTML()           — previne XSS ao inserir dados da planilha
- *   9. switchTab()            — alterna abas dentro de um card
- *  10. onSelectionChange()    — atualiza progresso e habilita botão
- *  11. Event listener submit  — orquestra o fluxo completo
- *  12. resetDiagnostico()     — limpa estado e volta ao formulário
+ *   1.  Configuração das URLs de dados (Google Sheets / Apps Script)
+ *   2.  parseCSV()               — converte texto CSV em array de objetos (legado)
+ *   3.  parseCSVRaw()            — converte texto CSV em array de arrays (2D)
+ *   4.  parseTransposedSheet()   — lê planilha transposta e retorna array de oportunidades
+ *   5.  fetchFinanciamentos()    — busca dados (Apps Script ou CSV direto)
+ *   6.  normalizeStr()           — normaliza strings para comparação flexível
+ *   7.  safeHref()               — valida URLs antes de inserir em href (anti-XSS)
+ *   8.  matchFinanciamentos()    — algoritmo de match: Setor + Porte + Modalidade + Status
+ *   9.  renderResultados()       — gera os cards de resultado no DOM (3 abas)
+ *   10. renderErro()             — exibe cards de erro amigáveis
+ *   11. escapeHTML()             — previne XSS ao inserir dados da planilha
+ *   12. switchTab()              — alterna abas dentro de um card (3 abas)
+ *   13. onSelectionChange()      — atualiza progresso e habilita botão (5 perguntas)
+ *   14. Event listener submit    — orquestra o fluxo completo
+ *   15. resetDiagnostico()       — limpa estado e volta ao formulário (5 perguntas)
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -21,80 +24,45 @@
 /* =============================================================
    1. CONFIGURAÇÃO — FONTE DE DADOS
    =============================================================
-   OPÇÃO A (recomendada): Google Apps Script como proxy
-   ──────────────────────────────────────────────────────────
-   Funciona ao abrir o arquivo direto no navegador (file://)
-   sem precisar de servidor local. Retorna JSON sem CORS.
+   IMPORTANTE: A planilha agora usa formato TRANSPOSTO.
+   Cada LINHA = 1 campo. Cada COLUNA (D a M) = 1 oportunidade.
 
-   Como criar:
-     1. Abra sua planilha → Extensions → Apps Script
-     2. Apague o código e cole:
+   O Apps Script precisa ser atualizado para retornar o array
+   bidimensional bruto (não mais JSON de objetos). Use o código:
 
         function doGet() {
           var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
           var data  = sheet.getDataRange().getValues();
-          var headers = data[0];
-          var rows = [];
-          for (var i = 1; i < data.length; i++) {
-            var row = {};
-            for (var j = 0; j < headers.length; j++) {
-              row[headers[j]] = data[i][j];
-            }
-            rows.push(row);
-          }
           return ContentService
-            .createTextOutput(JSON.stringify(rows))
+            .createTextOutput(JSON.stringify(data))
             .setMimeType(ContentService.MimeType.JSON);
         }
 
-     3. Deploy → New Deployment → Web App
-     4. "Who has access" → Anyone → Deploy
-     5. Cole a URL gerada em APPS_SCRIPT_URL abaixo
-
-   OPÇÃO B: URL CSV do Google Sheets
-   ──────────────────────────────────────────────────────────
+   OPÇÃO B — URL CSV do Google Sheets:
    Arquivo > Compartilhar > Publicar na Web > CSV
    Funciona via VS Code Live Server (http://).
    NÃO funciona ao abrir direto no navegador (file://).
    ============================================================= */
-const APPS_SCRIPT_URL      = 'https://script.google.com/macros/s/AKfycbwuATCARar_r4x4iVqbU-TdIxjQwu0_hAdfEG5tiMklPj-elSw9Xil3iGyY5JMhbLnY/exec'; // <-- OPÇÃO A
-const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTtSwKC-PE1IoYGZZj23-hacJvFpwChIOkXqcX2POJsSOi-lUxEDnld7ENUGk9AFJv5IWnonolmXt5l/pub?output=csv'; // OPÇÃO B
+const APPS_SCRIPT_URL      = ''; // deixe vazio para usar o CSV abaixo
+const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLYx5dDYydLOqBrZu_ZS5jsXHnOPUmN1HsTXK-aYH5quXNagNg2dnjy4SPzszyKeWrOneLAOnKgXMu/pub?output=csv';
 
 
 /* =============================================================
-   2. parseCSV(text)
-   Converte o texto bruto de um CSV em um Array de Objetos.
-
-   Segue o padrão RFC 4180 simplificado:
-   - Suporta campos entre aspas com vírgulas internas
-   - Suporta aspas duplas escapadas ("") dentro de campos
-   - Remove o BOM (Byte Order Mark) do cabeçalho se presente
+   2. parseCSV(text)  — MANTIDO para compatibilidade
+   Converte texto CSV em Array de Objetos (formato antigo, linha = fundo).
    ============================================================= */
 function parseCSV(text) {
-  // Normaliza quebras de linha de diferentes sistemas operacionais
   const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
 
-  /**
-   * splitRow(row)
-   * Divide uma linha CSV em campos, respeitando campos entre aspas.
-   * @param {string} row - Uma linha do CSV
-   * @returns {string[]} Array de valores da linha
-   */
   function splitRow(row) {
     const result = [];
     let current = '';
     let insideQuotes = false;
-
     for (let i = 0; i < row.length; i++) {
       const ch = row[i];
       if (ch === '"') {
-        // Aspas duplas dentro de campo entre aspas ("") → literal "
-        if (insideQuotes && row[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          insideQuotes = !insideQuotes;
-        }
+        if (insideQuotes && row[i + 1] === '"') { current += '"'; i++; }
+        else { insideQuotes = !insideQuotes; }
       } else if (ch === ',' && !insideQuotes) {
         result.push(current.trim());
         current = '';
@@ -107,22 +75,16 @@ function parseCSV(text) {
   }
 
   const lines = normalized.split('\n');
-  if (lines.length < 2) return []; // Planilha vazia ou só cabeçalho
-
-  // Primeira linha = cabeçalhos das colunas
+  if (lines.length < 2) return [];
   const headers = splitRow(lines[0]);
-
-  // Demais linhas = dados
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (!line) continue; // Ignora linhas em branco
-
+    if (!line) continue;
     const values = splitRow(line);
     const obj = {};
     headers.forEach(function (header, idx) {
-      // Remove BOM e espaços extras do nome da coluna
-      const cleanHeader = header.replace(/^\uFEFF/, '').trim();
+      const cleanHeader = header.replace(/^﻿/, '').trim();
       obj[cleanHeader] = values[idx] !== undefined ? values[idx] : '';
     });
     rows.push(obj);
@@ -132,45 +94,137 @@ function parseCSV(text) {
 
 
 /* =============================================================
-   3. fetchFinanciamentos()
+   3. parseCSVRaw(text)
+   Converte texto CSV em array de arrays (2D).
+   Usado como etapa intermediária para parseTransposedSheet().
+   ============================================================= */
+function parseCSVRaw(text) {
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+
+  function splitRow(row) {
+    const result = [];
+    let current = '';
+    let insideQuotes = false;
+    for (let i = 0; i < row.length; i++) {
+      const ch = row[i];
+      if (ch === '"') {
+        if (insideQuotes && row[i + 1] === '"') { current += '"'; i++; }
+        else { insideQuotes = !insideQuotes; }
+      } else if (ch === ',' && !insideQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  }
+
+  return normalized
+    .split('\n')
+    .filter(function (line) { return line.trim().length > 0; })
+    .map(function (line) { return splitRow(line); });
+}
+
+
+/* =============================================================
+   4. parseTransposedSheet(rawRows)
+   Lê a planilha no formato TRANSPOSTO e retorna array de oportunidades.
+
+   Estrutura esperada da planilha:
+   - Linha 3 (índice 2): cabeçalhos das oportunidades nas colunas D a M
+                          ex: "Oportunidade 1", "Oportunidade 2", ...
+   - Coluna B (índice 1): nome do campo em cada linha (ex: "Setor", "Status")
+   - Colunas D–M (índices 3–12): valores de cada campo por oportunidade
+
+   Retorna array de objetos, um por oportunidade, com chave = nome do campo.
+   ============================================================= */
+function parseTransposedSheet(rawRows) {
+  if (!rawRows || rawRows.length < 3) {
+    console.warn('[Eco Impact] parseTransposedSheet: menos de 3 linhas recebidas.');
+    return [];
+  }
+
+  // Linha 3 (índice 2) identifica as colunas de oportunidade (D em diante = índice 3+)
+  const headerRow = rawRows[2];
+  const oppCols = [];
+  for (var col = 3; col < headerRow.length; col++) {
+    var cell = String(headerRow[col] || '').trim();
+    if (cell !== '') oppCols.push(col);
+  }
+
+  console.log('[Eco Impact] Colunas de oportunidade identificadas:', oppCols.length, '→ índices', oppCols);
+
+  if (oppCols.length === 0) {
+    console.warn('[Eco Impact] Nenhuma coluna de oportunidade encontrada na linha 3 (colunas D+).');
+    return [];
+  }
+
+  // Inicializa um objeto vazio para cada oportunidade
+  var opportunities = oppCols.map(function () { return {}; });
+
+  // Percorre as linhas de dados (a partir da linha 4 = índice 3)
+  for (var row = 3; row < rawRows.length; row++) {
+    var fieldName = String(rawRows[row][1] || '').trim(); // coluna B
+    if (!fieldName) continue;
+
+    oppCols.forEach(function (col, i) {
+      var val = rawRows[row][col];
+      opportunities[i][fieldName] = (val !== undefined && val !== null) ? String(val).trim() : '';
+    });
+  }
+
+  // Filtra oportunidades sem nome (colunas vazias)
+  var result = opportunities.filter(function (o) {
+    return (o['Nome da Oportunidade'] || '').trim() !== '';
+  });
+
+  console.log('[Eco Impact] parseTransposedSheet: ' + result.length + ' oportunidade(s) válida(s) extraída(s).');
+  return result;
+}
+
+
+/* =============================================================
+   5. fetchFinanciamentos()
    Busca os dados de financiamento. Estratégia em duas etapas:
 
    Etapa 1 — Apps Script (APPS_SCRIPT_URL preenchida):
-     Retorna JSON diretamente, sem problemas de CORS.
+     O Apps Script deve retornar o array 2D bruto da planilha (JSON).
      Funciona tanto via file:// quanto via http://.
 
    Etapa 2 — CSV direto (fallback):
      Funciona via Live Server (http://).
      Falha ao abrir direto no navegador (file://) por causa do
-     redirecionamento do Google Sheets para googleusercontent.com,
-     que bloqueia requisições com Origin: null.
+     redirecionamento do Google Sheets.
    ============================================================= */
 async function fetchFinanciamentos() {
 
   // ── Etapa 1: Apps Script (preferido) ──────────────────────
   if (APPS_SCRIPT_URL) {
-    console.log('[EcoMatch PR] Fonte: Apps Script');
+    console.log('[Eco Impact] Fonte: Apps Script');
     const response = await fetch(APPS_SCRIPT_URL);
     if (!response.ok) throw new Error('FETCH_ERROR');
-    const json = await response.json();
-    console.log('[EcoMatch PR] Apps Script OK — ' + json.length + ' linhas recebidas.');
-    return json;
+    const rawData = await response.json();
+    console.log('[Eco Impact] Apps Script OK — ' + rawData.length + ' linhas recebidas.');
+    return parseTransposedSheet(rawData);
   }
 
   // ── Etapa 2: CSV direto (fallback) ────────────────────────
   if (!GOOGLE_SHEET_CSV_URL) {
     throw new Error('URL_NAO_CONFIGURADA');
   }
-  console.log('[EcoMatch PR] Fonte: CSV direto (requer Live Server)');
+  console.log('[Eco Impact] Fonte: CSV direto (requer Live Server)');
   const response = await fetch(GOOGLE_SHEET_CSV_URL);
   if (!response.ok) throw new Error('FETCH_ERROR');
   const text = await response.text();
-  return parseCSV(text);
+  const rawRows = parseCSVRaw(text);
+  return parseTransposedSheet(rawRows);
 }
 
 
 /* =============================================================
-   4. normalizeStr(str)
+   6. normalizeStr(str)
    Normaliza uma string para comparação flexível:
    - Converte para minúsculas
    - Remove acentos (NFD + strip diacríticos)
@@ -178,96 +232,141 @@ async function fetchFinanciamentos() {
    - Colapsa espaços múltiplos
 
    Exemplo:
-     "Indústria/CCUS"                   → "industria ccus"
+     "Indústria/CCUS"                    → "industria ccus"
      "Agricultura de Baixo Carbono (ABC)" → "agricultura de baixo carbono abc"
    ============================================================= */
 function normalizeStr(str) {
   return String(str)
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // remove diacríticos
-    .replace(/[^a-z0-9]/g, ' ')      // não-alfanumérico → espaço
-    .replace(/\s+/g, ' ')            // colapsa espaços
+    .replace(/[̀-ͯ]/g, '') // remove diacríticos
+    .replace(/[^a-z0-9]/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
 
 /* =============================================================
-   5. matchFinanciamentos(financiamentos, setor, porte)
-   Filtra o array de financiamentos pelo perfil do usuário.
-
-   Regras de match:
-   - Coluna "Setor" da planilha contém o setor selecionado,
-     OU o setor selecionado contém o valor da planilha,
-     OU a planilha tem "Todos" → aceita qualquer setor.
-   - Mesma lógica para "Porte".
-
-   A comparação usa normalizeStr() — não é necessário que os
-   valores sejam idênticos. "Agricultura de Baixo Carbono (ABC)"
-   faz match com "abc" porque após normalizar ambos, "abc"
-   está contido na string normalizada da planilha.
-
-   Logs de diagnóstico disponíveis no console do navegador (F12).
+   7. safeHref(url)
+   Valida URLs antes de inserir em atributos href.
+   Aceita apenas http:// e https:// — bloqueia javascript: e outros.
    ============================================================= */
-function matchFinanciamentos(financiamentos, setor, porte) {
-  const normSetor = normalizeStr(setor);
-  const normPorte = normalizeStr(porte);
+function safeHref(url) {
+  var u = String(url || '').trim();
+  if (!u || u === '#') return '#';
+  if (u.startsWith('http://') || u.startsWith('https://')) return escapeHTML(u);
+  return '#';
+}
 
-  // Diagnóstico no console (F12 → Console)
-  console.group('[EcoMatch PR] Diagnóstico de Match');
-  console.log('Selecionado → Setor: "' + setor + '" | Porte: "' + porte + '"');
-  console.log('Total de linhas na planilha:', financiamentos.length);
+
+/* =============================================================
+   8. matchFinanciamentos(financiamentos, setor, porte, modalidade, statusFiltro)
+   Filtra oportunidades pelo perfil do usuário com 4 critérios ativos:
+
+   Critério 1 — Setor:
+     Planilha "Setor" contém o setor selecionado, ou é "Todos".
+   Critério 2 — Porte:
+     Planilha "Porte" contém o porte selecionado, ou é "Todos".
+   Critério 3 — Modalidade:
+     Planilha "Modalidade de Apoio" contém a modalidade selecionada.
+     Se usuário escolheu "qualquer" → sem filtro.
+   Critério 4 — Status:
+     "aberto"  → só Status = "Aberto"
+     "abrir"   → Status = "Aberto" ou "A abrir"
+     "todos"   → sem filtro
+
+   O desafio (Pergunta 3) é informativo — não filtra o match.
+   Logs de diagnóstico disponíveis no console (F12 → Console).
+   ============================================================= */
+function matchFinanciamentos(financiamentos, setor, porte, modalidade, statusFiltro) {
+  const normSetor      = normalizeStr(setor);
+  const normPorte      = normalizeStr(porte);
+  const normModalidade = normalizeStr(modalidade);
+
+  console.group('[Eco Impact] Diagnóstico de Match');
+  console.log(
+    'Selecionado →' +
+    ' Setor: "' + setor + '"' +
+    ' | Porte: "' + porte + '"' +
+    ' | Modalidade: "' + modalidade + '"' +
+    ' | Status: "' + statusFiltro + '"'
+  );
+  console.log('Total de oportunidades na planilha:', financiamentos.length);
   console.table(financiamentos.map(function (item) {
-    return { Nome: item['Nome_Financiamento'], Setor: item['Setor'], Porte: item['Porte'] };
+    return {
+      Nome:       item['Nome da Oportunidade'],
+      Setor:      item['Setor'],
+      Porte:      item['Porte'],
+      Modalidade: item['Modalidade de Apoio'],
+      Status:     item['Status'],
+    };
   }));
 
   const resultado = financiamentos.filter(function (item) {
-    const itemSetor = normalizeStr(item['Setor'] || '');
-    const itemPorte = normalizeStr(item['Porte'] || '');
 
+    // ── Critério 1: Setor ──────────────────────────────────
+    const itemSetor = normalizeStr(item['Setor'] || '');
     const setorMatch = itemSetor === 'todos'
       || itemSetor.includes(normSetor)
       || normSetor.includes(itemSetor);
 
+    // ── Critério 2: Porte ──────────────────────────────────
+    const itemPorte = normalizeStr(item['Porte'] || '');
     const porteMatch = itemPorte === 'todos'
       || itemPorte.includes(normPorte)
       || normPorte.includes(itemPorte);
 
-    const match = setorMatch && porteMatch;
+    // ── Critério 3: Modalidade ─────────────────────────────
+    var modalidadeMatch = true;
+    if (modalidade !== 'qualquer') {
+      const itemMod = normalizeStr(item['Modalidade de Apoio'] || '');
+      modalidadeMatch = itemMod === 'todos'
+        || itemMod.includes(normModalidade)
+        || normModalidade.includes(itemMod);
+    }
+
+    // ── Critério 4: Status ─────────────────────────────────
+    var statusMatch = true;
+    const itemStatus = normalizeStr(item['Status'] || '');
+    if (statusFiltro === 'aberto') {
+      statusMatch = itemStatus === 'aberto';
+    } else if (statusFiltro === 'abrir') {
+      statusMatch = itemStatus === 'aberto' || itemStatus.includes('abrir');
+    }
+    // 'todos' → statusMatch permanece true
+
+    const match = setorMatch && porteMatch && modalidadeMatch && statusMatch;
     console.log(
       (match ? '✅ MATCH' : '❌ sem match') +
-      ' → "' + item['Nome_Financiamento'] + '"' +
-      ' | Setor: "' + item['Setor'] + '" (ok=' + setorMatch + ')' +
-      ' | Porte: "' + item['Porte'] + '" (ok=' + porteMatch + ')'
+      ' → "' + (item['Nome da Oportunidade'] || '') + '"' +
+      ' | setor=' + setorMatch +
+      ' | porte=' + porteMatch +
+      ' | modalidade=' + modalidadeMatch +
+      ' | status=' + statusMatch
     );
     return match;
   });
 
-  console.log('Resultado: ' + resultado.length + ' linha(s) encontrada(s)');
+  console.log('Resultado: ' + resultado.length + ' oportunidade(s) encontrada(s)');
   console.groupEnd();
   return resultado;
 }
 
 
 /* =============================================================
-   6. renderResultados(matches)
+   9. renderResultados(matches)
    Gera dinamicamente os cards de resultado no DOM.
 
-   Para cada item do array de matches, cria um card com:
-   - Header com gradiente (nome da linha + número)
-   - Aba A: Viabilidade Financeira (coluna Beneficios)
-   - Aba B: Viabilidade Jurídica   (coluna Alerta_GSGA)
-   - Rodapé com botão "Gerar PDF"
-
-   A coluna Beneficios pode usar "|" como separador de itens
-   para renderizar uma lista com checkmarks.
+   Cada card tem 3 abas:
+   - Visão Geral:             descrição, links edital e site
+   - Financeiro & Elegibilidade: dados financeiros e critérios de elegibilidade
+   - Análise Jurídica GSGA:   requisitos, critérios de avaliação, alerta
    ============================================================= */
 function renderResultados(matches) {
   const container = document.getElementById('resultados-container');
   const header    = document.getElementById('resultado-header');
   container.innerHTML = '';
 
-  // Cabeçalho da seção de resultados
   header.innerHTML = `
     <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 border border-green-200 mb-4">
       <svg class="w-4 h-4 text-forest" fill="currentColor" viewBox="0 0 20 20">
@@ -281,43 +380,75 @@ function renderResultados(matches) {
       ${matches.length === 1 ? 'Oportunidade Identificada' : 'Oportunidades Identificadas'}
     </h2>
     <p class="text-gray-500 text-sm">
-      Nossa IA cruzou seu perfil com a base de financiamentos sustentáveis
+      Nossa IA cruzou seu perfil com o Mapeamento de Oportunidades de Financiamento Climático
     </p>
   `;
 
-  // Gera um card para cada resultado
   matches.forEach(function (item, idx) {
-    // Diagnóstico: exibe os dados brutos recebidos do CSV/JSON
-    console.group('[EcoMatch PR] Dados do item ' + (idx + 1));
+    console.group('[Eco Impact] Dados do item ' + (idx + 1));
     console.log('Chaves encontradas:', Object.keys(item));
     console.log('Objeto completo:', item);
     console.groupEnd();
 
-    const nome       = item['Nome_Financiamento'] || 'Linha de Financiamento';
-    const beneficios = item['Beneficios']         || 'Consulte os detalhes com nosso time.';
-    const alertaGSGA = item['Alerta_GSGA']        || 'O acesso a este capital pode exigir conformidade ambiental e tributária. Recomendamos orientação jurídica especializada.';
+    // ── Extração dos campos ────────────────────────────────
+    const nome        = item['Nome da Oportunidade']    || 'Oportunidade de Financiamento';
+    const instituicao = item['Instituição']             || '';
+    const descricao   = item['Descrição da Oportunidade'] || 'Consulte os detalhes no edital ou site oficial.';
+    const linkEdital  = safeHref(item['Link do Edital']);
+    const linkSite    = safeHref(item['Link do Site']);
+    const status      = item['Status']                  || '';
+    const modalidade  = item['Modalidade de Apoio']     || '';
 
-    // Converte benefícios em lista se usar "|" como separador
-    const beneficiosItens = beneficios
-      .split(/[|\n]/)
-      .map(function (b) { return b.trim(); })
-      .filter(function (b) { return b.length > 0; });
+    const valorProjeto   = item['Valor por Projeto (Mín./Máx.)']        || '—';
+    const volumeTotal    = item['Volume Total do Fundo/Edital']          || '—';
+    const moeda          = item['Moeda']                                 || '—';
+    const natureza       = item['Natureza do Apoio']                     || '—';
+    const encerramento   = item['Data de Encerramento']                  || '—';
+    const execucao       = item['Período de Execução do Projeto']        || '—';
+    const porteEleg      = item['Porte']                                 || '—';
+    const maturidade     = item['Maturidade do Projeto']                 || '—';
+    const beneficiario   = item['Tipo de Beneficiário Elegível']         || '—';
 
-    const beneficiosHTML = beneficiosItens.length > 1
-      ? `<ul class="beneficios-lista divide-y divide-gray-100">${
-          beneficiosItens.map(function (b) {
-            return `<li class="flex items-start gap-2 py-2">
-              <svg class="w-4 h-4 text-forest flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-              </svg>
-              <span class="text-gray-700 text-sm">${escapeHTML(b)}</span>
-            </li>`;
-          }).join('')
-        }</ul>`
-      : `<p class="text-gray-700 text-sm leading-relaxed">${escapeHTML(beneficios)}</p>`;
+    const requisitos     = item['Principais Requisitos Técnicos e Institucionais'] || '—';
+    const criterios      = item['Critérios Básicos de Avaliação']        || '—';
+    const contrapartida  = item['Contrapartida Exigida']                 || '—';
+    const condicoes      = item['Condições Financeiras']                 || '—';
 
-    // Delay escalonado para animação em cascata
+    // ── Badges de Status e Modalidade ─────────────────────
+    const statusNorm = normalizeStr(status);
+    var statusClass, statusLabel;
+    if (statusNorm === 'aberto') {
+      statusClass = 'bg-green-100 text-green-800 border border-green-200';
+      statusLabel = '● Aberto';
+    } else if (statusNorm.includes('abrir')) {
+      statusClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+      statusLabel = '◐ A abrir';
+    } else {
+      statusClass = 'bg-gray-100 text-gray-500 border border-gray-200';
+      statusLabel = '○ Fechado';
+    }
+
+    const modNorm = normalizeStr(modalidade);
+    var modClass;
+    if (modNorm.includes('equity'))                           modClass = 'bg-blue-100 text-blue-800 border border-blue-200';
+    else if (modNorm.includes('grant') || modNorm.includes('nao reembolsavel')) modClass = 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+    else if (modNorm.includes('mezzanine') || modNorm.includes('blended'))      modClass = 'bg-purple-100 text-purple-800 border border-purple-200';
+    else if (modNorm.includes('loan') || modNorm.includes('credito'))           modClass = 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+    else                                                                         modClass = 'bg-gray-100 text-gray-600 border border-gray-200';
+
     const delay = (idx * 0.12) + 's';
+
+    // ── Linha financeira auxiliar ──────────────────────────
+    function finRow(emoji, label, value) {
+      return `
+        <div class="flex items-start gap-3 py-2.5 border-b border-gray-50 last:border-0">
+          <span class="text-base flex-shrink-0 mt-0.5">${emoji}</span>
+          <div class="min-w-0">
+            <dt class="text-xs font-bold text-gray-400 uppercase tracking-wide">${label}</dt>
+            <dd class="text-sm text-gray-700 mt-0.5">${escapeHTML(value)}</dd>
+          </div>
+        </div>`;
+    }
 
     const cardHTML = `
       <div class="result-card-enter bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
@@ -326,8 +457,12 @@ function renderResultados(matches) {
         <!-- Header do card -->
         <div class="bg-gradient-to-r from-navy to-forest p-6 sm:p-8 text-white">
           <div class="flex items-start justify-between gap-4">
-            <div class="flex-1">
-              <p class="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">Linha Recomendada</p>
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap gap-2 mb-3">
+                <span class="${statusClass} px-2.5 py-0.5 rounded-full text-xs font-bold">${escapeHTML(statusLabel)}</span>
+                ${modalidade ? `<span class="${modClass} px-2.5 py-0.5 rounded-full text-xs font-bold">${escapeHTML(modalidade)}</span>` : ''}
+              </div>
+              ${instituicao ? `<p class="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">${escapeHTML(instituicao)}</p>` : ''}
               <h3 class="text-xl sm:text-2xl font-extrabold leading-tight">${escapeHTML(nome)}</h3>
             </div>
             <div class="flex-shrink-0 w-10 h-10 rounded-full bg-white/15 border border-white/25 flex items-center justify-center">
@@ -338,41 +473,82 @@ function renderResultados(matches) {
 
         <!-- Abas de navegação -->
         <div class="flex border-b border-gray-100">
+          <button id="tab-geral-btn-${idx}"
+            class="flex-1 flex items-center justify-center gap-1 py-3 text-xs font-semibold border-b-2 border-forest text-forest transition-all"
+            onclick="switchTab(${idx}, 'geral')">
+            📋 <span class="hidden sm:inline">Visão Geral</span><span class="sm:hidden">Geral</span>
+          </button>
           <button id="tab-fin-btn-${idx}"
-            class="flex-1 flex items-center justify-center gap-2 py-4 text-sm font-semibold border-b-2 border-forest text-forest transition-all"
+            class="flex-1 flex items-center justify-center gap-1 py-3 text-xs font-semibold text-gray-500 hover:text-navy border-b-2 border-transparent hover:border-gray-200 transition-all"
             onclick="switchTab(${idx}, 'financeiro')">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-            Viabilidade Financeira
+            💰 <span class="hidden sm:inline">Financeiro & Elegibilidade</span><span class="sm:hidden">Financeiro</span>
           </button>
           <button id="tab-jur-btn-${idx}"
-            class="flex-1 flex items-center justify-center gap-2 py-4 text-sm font-semibold text-gray-500 hover:text-navy border-b-2 border-transparent hover:border-gray-200 transition-all"
+            class="flex-1 flex items-center justify-center gap-1 py-3 text-xs font-semibold text-gray-500 hover:text-navy border-b-2 border-transparent hover:border-gray-200 transition-all"
             onclick="switchTab(${idx}, 'juridico')">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-            </svg>
-            Viabilidade Jurídica
+            ⚖️ <span class="hidden sm:inline">Análise Jurídica GSGA</span><span class="sm:hidden">GSGA</span>
           </button>
         </div>
 
-        <!-- Painel A: Viabilidade Financeira -->
-        <div id="panel-fin-${idx}" class="tab-panel active p-6 sm:p-8">
-          <h4 class="text-sm font-bold text-navy mb-4 flex items-center gap-2">
-            <svg class="w-4 h-4 text-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-            </svg>
-            Benefícios e Condições
-          </h4>
-          ${beneficiosHTML}
+        <!-- ABA 1: Visão Geral -->
+        <div id="panel-geral-${idx}" class="tab-panel active p-6 sm:p-8">
+          <p class="text-gray-700 text-sm leading-relaxed mb-6">${escapeHTML(descricao)}</p>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <a href="${linkEdital}" target="_blank" rel="noopener noreferrer"
+               class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-navy text-white text-sm font-semibold hover:bg-navy-700 transition-colors ${linkEdital === '#' ? 'opacity-50 pointer-events-none' : ''}">
+              🔗 Ver Edital
+            </a>
+            <a href="${linkSite}" target="_blank" rel="noopener noreferrer"
+               class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-navy text-navy text-sm font-semibold hover:bg-navy-50 transition-colors ${linkSite === '#' ? 'opacity-50 pointer-events-none' : ''}">
+              🌐 Site Oficial
+            </a>
+          </div>
         </div>
 
-        <!-- Painel B: Viabilidade Jurídica -->
+        <!-- ABA 2: Financeiro & Elegibilidade -->
+        <div id="panel-fin-${idx}" class="tab-panel p-6 sm:p-8">
+          <dl class="divide-y divide-gray-50">
+            ${finRow('💰', 'Valor por Projeto', valorProjeto)}
+            ${finRow('🏦', 'Volume Total do Fundo/Edital', volumeTotal)}
+            ${finRow('💱', 'Moeda', moeda)}
+            ${finRow('♻️', 'Natureza do Apoio', natureza)}
+            ${finRow('📋', 'Modalidade de Apoio', modalidade || '—')}
+            ${finRow('📅', 'Data de Encerramento', encerramento)}
+            ${finRow('⏱️', 'Período de Execução', execucao)}
+            ${finRow('🏢', 'Porte Elegível', porteEleg)}
+            ${finRow('🌱', 'Maturidade do Projeto', maturidade)}
+            ${finRow('👥', 'Tipo de Beneficiário', beneficiario)}
+          </dl>
+        </div>
+
+        <!-- ABA 3: Análise Jurídica GSGA -->
         <div id="panel-jur-${idx}" class="tab-panel p-6 sm:p-8">
 
-          <!-- Caixa de alerta GSGA — texto vem da coluna Alerta_GSGA da planilha -->
+          <div class="space-y-5 mb-6">
+            <div>
+              <h5 class="text-sm font-bold text-navy mb-1.5 flex items-center gap-2">
+                <span class="w-5 h-5 rounded bg-navy-50 flex items-center justify-center text-xs">📌</span>
+                Requisitos Técnicos e Institucionais
+              </h5>
+              <p class="text-sm text-gray-700 leading-relaxed pl-7">${escapeHTML(requisitos)}</p>
+            </div>
+            <div>
+              <h5 class="text-sm font-bold text-navy mb-1.5 flex items-center gap-2">
+                <span class="w-5 h-5 rounded bg-navy-50 flex items-center justify-center text-xs">🏆</span>
+                Critérios de Avaliação
+              </h5>
+              <p class="text-sm text-gray-700 leading-relaxed pl-7">${escapeHTML(criterios)}</p>
+            </div>
+            <div>
+              <h5 class="text-sm font-bold text-navy mb-1.5 flex items-center gap-2">
+                <span class="w-5 h-5 rounded bg-navy-50 flex items-center justify-center text-xs">🤝</span>
+                Contrapartida Exigida
+              </h5>
+              <p class="text-sm text-gray-700 leading-relaxed pl-7">${escapeHTML(contrapartida)}</p>
+            </div>
+          </div>
+
+          <!-- Caixa amarela de alerta GSGA -->
           <div class="rounded-xl border border-amber-200 bg-amber-50 p-5 mb-5">
             <div class="flex items-start gap-3">
               <div class="flex-shrink-0 mt-0.5">
@@ -381,8 +557,9 @@ function renderResultados(matches) {
                 </div>
               </div>
               <div>
-                <h4 class="font-bold text-amber-900 mb-2">Análise Regulatória Necessária — Alerta GSGA</h4>
-                <p class="text-amber-800 text-sm leading-relaxed">${escapeHTML(alertaGSGA)}</p>
+                <h4 class="font-bold text-amber-900 mb-2">Alerta GSGA — Condições Financeiras</h4>
+                <p class="text-amber-800 text-sm leading-relaxed">${escapeHTML(condicoes)}</p>
+                <p class="text-amber-700 text-sm mt-2 italic">O escritório Gaia Silva Gaede Advogados (GSGA) pode auxiliar na análise e adequação aos requisitos acima.</p>
               </div>
             </div>
           </div>
@@ -392,21 +569,21 @@ function renderResultados(matches) {
             <div>
               <p class="text-sm font-semibold text-navy">Precisa de orientação jurídica especializada?</p>
               <p class="text-xs text-gray-500 mt-0.5">
-                <strong>Gaia Silva Gaede Advogados (GSGA)</strong> oferece triagem para PMEs parceiras da EcoMatch PR
+                <strong>Gaia Silva Gaede Advogados (GSGA)</strong> oferece triagem para PMEs parceiras do Eco Impact
               </p>
             </div>
             <button
-              onclick="alert('Integração com agenda GSGA em desenvolvimento pela equipe EcoMatch PR.')"
+              onclick="alert('Integração com agenda GSGA em desenvolvimento pela equipe Eco Impact.')"
               class="flex-shrink-0 px-4 py-2.5 rounded-lg bg-navy text-white text-xs font-bold hover:bg-navy-700 transition-colors whitespace-nowrap">
               Contatar GSGA →
             </button>
           </div>
         </div>
 
-        <!-- Rodapé do card: botão Gerar PDF -->
+        <!-- Rodapé do card -->
         <div class="border-t border-gray-100 p-5 sm:p-6 bg-gray-50">
           <button
-            onclick="alert('Integração com gerador de Plano de Negócios em desenvolvimento pela equipe EcoMatch PR.')"
+            onclick="alert('Integração com gerador de Plano de Negócios em desenvolvimento pela equipe Eco Impact.')"
             class="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-forest text-white font-bold text-sm hover:bg-forest-700 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -425,13 +602,8 @@ function renderResultados(matches) {
 
 
 /* =============================================================
-   7. renderErro(tipo)
+   10. renderErro(tipo)
    Exibe um card de erro amigável no lugar dos resultados.
-
-   Tipos disponíveis:
-   - 'URL_NAO_CONFIGURADA' — nenhuma URL configurada no script
-   - 'SEM_RESULTADOS'      — fetch OK mas nenhum match encontrado
-   - 'FETCH_ERROR'         — falha de rede ou CORS
    ============================================================= */
 function renderErro(tipo) {
   const container = document.getElementById('resultados-container');
@@ -446,14 +618,14 @@ function renderErro(tipo) {
       cor:    'blue',
     },
     SEM_RESULTADOS: {
-      titulo: 'Nenhuma Linha Encontrada',
-      texto:  'Não encontramos financiamentos na planilha que correspondam ao seu perfil. Verifique os valores nas colunas <strong>Setor</strong> e <strong>Porte</strong> da planilha (consulte o arquivo PLANILHA_GUIA.md).',
+      titulo: 'Nenhuma Oportunidade Encontrada',
+      texto:  'Não encontramos oportunidades que correspondam ao perfil selecionado. Tente ampliar os filtros (ex: escolha "Qualquer modalidade" ou "Todas" no status). Consulte também o arquivo PLANILHA_GUIA.md para verificar o preenchimento dos campos Setor, Porte, Modalidade de Apoio e Status.',
       icone:  '🔍',
       cor:    'yellow',
     },
     FETCH_ERROR: {
       titulo: 'Erro ao Acessar a Planilha',
-      texto:  'Não foi possível conectar à fonte de dados. Se estiver usando a URL CSV, abra o arquivo via VS Code Live Server (http://). Se estiver usando o Apps Script, verifique se o deploy está com acesso "Anyone".',
+      texto:  'Não foi possível conectar à fonte de dados. Se estiver usando a URL CSV, abra o arquivo via VS Code Live Server (http://). Se estiver usando o Apps Script, verifique se o deploy está com acesso "Anyone" e se o script retorna o array 2D (veja PLANILHA_GUIA.md).',
       icone:  '🌐',
       cor:    'red',
     },
@@ -481,7 +653,7 @@ function renderErro(tipo) {
 
 
 /* =============================================================
-   8. escapeHTML(str)
+   11. escapeHTML(str)
    Sanitiza strings antes de inseri-las no DOM via innerHTML.
    Previne XSS caso a planilha contenha caracteres especiais.
    ============================================================= */
@@ -496,65 +668,66 @@ function escapeHTML(str) {
 
 
 /* =============================================================
-   9. switchTab(idx, aba)
-   Alterna entre as abas "Viabilidade Financeira" e "Viabilidade
-   Jurídica" de um card específico, identificado pelo índice idx.
+   12. switchTab(idx, aba)
+   Alterna entre as 3 abas de um card específico (identificado por idx).
+   Parâmetro aba: 'geral' | 'financeiro' | 'juridico'
    ============================================================= */
 function switchTab(idx, aba) {
-  const btnFin = document.getElementById('tab-fin-btn-' + idx);
-  const btnJur = document.getElementById('tab-jur-btn-' + idx);
-  const panFin = document.getElementById('panel-fin-' + idx);
-  const panJur = document.getElementById('panel-jur-' + idx);
+  var tabs = [
+    { key: 'geral',      seg: 'geral' },
+    { key: 'financeiro', seg: 'fin'   },
+    { key: 'juridico',   seg: 'jur'   },
+  ];
 
-  const ativoClass   = 'flex-1 flex items-center justify-center gap-2 py-4 text-sm font-semibold border-b-2 border-forest text-forest transition-all';
-  const inativoClass = 'flex-1 flex items-center justify-center gap-2 py-4 text-sm font-semibold text-gray-500 hover:text-navy border-b-2 border-transparent hover:border-gray-200 transition-all';
+  var ativoClass   = 'flex-1 flex items-center justify-center gap-1 py-3 text-xs font-semibold border-b-2 border-forest text-forest transition-all';
+  var inativoClass = 'flex-1 flex items-center justify-center gap-1 py-3 text-xs font-semibold text-gray-500 hover:text-navy border-b-2 border-transparent hover:border-gray-200 transition-all';
 
-  if (aba === 'financeiro') {
-    btnFin.className = ativoClass;
-    btnJur.className = inativoClass;
-    panFin.classList.add('active');
-    panJur.classList.remove('active');
-  } else {
-    btnJur.className = ativoClass;
-    btnFin.className = inativoClass;
-    panJur.classList.add('active');
-    panFin.classList.remove('active');
-  }
+  tabs.forEach(function (t) {
+    var btn   = document.getElementById('tab-' + t.seg + '-btn-' + idx);
+    var panel = document.getElementById('panel-' + t.seg + '-' + idx);
+    if (t.key === aba) {
+      btn.className = ativoClass;
+      panel.classList.add('active');
+    } else {
+      btn.className = inativoClass;
+      panel.classList.remove('active');
+    }
+  });
 }
 
 
 /* =============================================================
-   10. onSelectionChange()
+   13. onSelectionChange()
    Chamada via onchange em cada radio input do formulário.
-   - Atualiza os indicadores visuais de progresso (steps 1-2-3)
-   - Habilita o botão "Mapear" quando as 3 perguntas estão respondidas
+   - Atualiza os indicadores visuais de progresso (steps 1–5)
+   - Habilita o botão "Mapear" somente quando as 5 perguntas estão respondidas
    ============================================================= */
 function onSelectionChange() {
-  const setor   = document.querySelector('input[name="setor"]:checked');
-  const porte   = document.querySelector('input[name="porte"]:checked');
-  const desafio = document.querySelector('input[name="desafio"]:checked');
+  const setor      = document.querySelector('input[name="setor"]:checked');
+  const porte      = document.querySelector('input[name="porte"]:checked');
+  const desafio    = document.querySelector('input[name="desafio"]:checked');
+  const modalidade = document.querySelector('input[name="modalidade"]:checked');
+  const statusF    = document.querySelector('input[name="status_filtro"]:checked');
 
-  /**
-   * ativarStep(stepId, labelId, lineId)
-   * Pinta o círculo numerado e a linha conectora na cor forest (verde).
-   */
   function ativarStep(stepId, labelId, lineId) {
     const el    = document.getElementById(stepId);
     const label = labelId ? document.getElementById(labelId) : null;
     const line  = lineId  ? document.getElementById(lineId)  : null;
-    el.className = 'w-8 h-8 rounded-full bg-forest text-white text-sm font-bold flex items-center justify-center transition-all';
+    el.className    = 'w-8 h-8 rounded-full bg-forest text-white text-sm font-bold flex items-center justify-center transition-all';
     if (label) label.className = 'text-xs font-medium text-forest hidden sm:block';
-    if (line)  line.className  = 'h-0.5 w-8 bg-forest transition-all';
+    if (line)  line.className  = 'h-0.5 w-6 bg-forest transition-all flex-shrink-0';
   }
 
-  if (setor)   ativarStep('step-1', null,          'line-1-2');
-  if (porte)   ativarStep('step-2', 'step-2-label', 'line-2-3');
-  if (desafio) ativarStep('step-3', 'step-3-label', null);
+  if (setor)      ativarStep('step-1', null,           'line-1-2');
+  if (porte)      ativarStep('step-2', 'step-2-label', 'line-2-3');
+  if (desafio)    ativarStep('step-3', 'step-3-label', 'line-3-4');
+  if (modalidade) ativarStep('step-4', 'step-4-label', 'line-4-5');
+  if (statusF)    ativarStep('step-5', 'step-5-label', null);
 
   const btn  = document.getElementById('btn-mapear');
   const hint = document.getElementById('btn-hint');
 
-  if (setor && porte && desafio) {
+  if (setor && porte && desafio && modalidade && statusF) {
     btn.disabled  = false;
     btn.className = 'w-full flex items-center justify-center gap-3 px-8 py-4 rounded-xl font-bold text-base bg-forest text-white cursor-pointer shadow-lg hover:bg-forest-700 hover:shadow-xl hover:-translate-y-0.5 transform transition-all duration-300';
     hint.textContent = 'Pronto! Clique para mapear suas oportunidades.';
@@ -564,36 +737,36 @@ function onSelectionChange() {
 
 
 /* =============================================================
-   11. EVENT LISTENER — Submissão do formulário
+   14. EVENT LISTENER — Submissão do formulário
    Orquestra o fluxo completo:
      1. Exibe overlay de loading com textos sequenciais
      2. Chama fetchFinanciamentos() em paralelo com delay mínimo
-     3. Executa matchFinanciamentos() com os dados retornados
-     4. Renderiza resultado (cards) ou erro (card de erro)
+     3. Executa matchFinanciamentos() com os 4 critérios ativos
+     4. Renderiza resultado (cards com 3 abas) ou erro
      5. Faz scroll suave até a seção de resultados
    ============================================================= */
 document.getElementById('diagnostico-form').addEventListener('submit', async function (e) {
   e.preventDefault();
 
-  const setorVal = document.querySelector('input[name="setor"]:checked').value;
-  const porteVal = document.querySelector('input[name="porte"]:checked').value;
+  const setorVal      = document.querySelector('input[name="setor"]:checked').value;
+  const porteVal      = document.querySelector('input[name="porte"]:checked').value;
+  const modalidadeVal = document.querySelector('input[name="modalidade"]:checked').value;
+  const statusVal     = document.querySelector('input[name="status_filtro"]:checked').value;
+  // desafio é informativo — não usado no filtro de match
 
-  // Esmaece o formulário durante o processamento
   document.getElementById('form-card').classList.add('opacity-50', 'pointer-events-none');
 
-  // Exibe o overlay de loading
   const overlay  = document.getElementById('loading-overlay');
   const loadText = document.getElementById('loading-text');
   const loadBar  = document.getElementById('loading-bar');
   overlay.classList.remove('hidden');
 
-  // Textos sequenciais exibidos durante o loading
   const etapas = [
-    { texto: 'Conectando ao Google Sheets...',     pct: 15  },
-    { texto: 'Baixando base de financiamentos...', pct: 40  },
-    { texto: 'Analisando perfil empresarial...',   pct: 65  },
-    { texto: 'Calculando compatibilidade...',      pct: 85  },
-    { texto: 'Finalizando recomendações...',       pct: 100 },
+    { texto: 'Conectando ao Google Sheets...',       pct: 15  },
+    { texto: 'Baixando mapeamento de oportunidades...', pct: 40  },
+    { texto: 'Analisando perfil empresarial...',     pct: 60  },
+    { texto: 'Aplicando critérios de match...',      pct: 80  },
+    { texto: 'Finalizando recomendações...',         pct: 100 },
   ];
 
   let etapaIdx = 0;
@@ -605,34 +778,28 @@ document.getElementById('diagnostico-form').addEventListener('submit', async fun
     }
   }, 500);
 
-  // Fetch + delay mínimo de 2.5s para a animação ser visível
   const [financiamentos] = await Promise.allSettled([
     fetchFinanciamentos(),
     new Promise(function (r) { setTimeout(r, 2500); }),
   ]);
 
   clearInterval(loadingInterval);
-
-  // Esconde loading e formulário
   overlay.classList.add('hidden');
   loadBar.style.width = '0%';
   document.getElementById('diagnostico').classList.add('hidden');
 
-  // Exibe seção de resultados
   const secaoResultado = document.getElementById('resultado-section');
   secaoResultado.classList.remove('hidden');
 
-  // Processa resultado ou erro
   if (financiamentos.status === 'rejected') {
     const errMsg = financiamentos.reason.message || '';
     renderErro(errMsg === 'URL_NAO_CONFIGURADA' ? 'URL_NAO_CONFIGURADA' : 'FETCH_ERROR');
-    console.error('[EcoMatch PR] Erro:', financiamentos.reason);
+    console.error('[Eco Impact] Erro:', financiamentos.reason);
   } else {
-    const matches = matchFinanciamentos(financiamentos.value, setorVal, porteVal);
+    const matches = matchFinanciamentos(financiamentos.value, setorVal, porteVal, modalidadeVal, statusVal);
     matches.length === 0 ? renderErro('SEM_RESULTADOS') : renderResultados(matches);
   }
 
-  // Scroll suave até os resultados
   setTimeout(function () {
     secaoResultado.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 100);
@@ -640,49 +807,45 @@ document.getElementById('diagnostico-form').addEventListener('submit', async fun
 
 
 /* =============================================================
-   12. resetDiagnostico()
+   15. resetDiagnostico()
    Limpa todo o estado da interface e volta ao formulário inicial:
-   - Desmarca todos os radio inputs
-   - Reseta os indicadores de progresso para o estado inicial
+   - Desmarca todos os radio inputs (5 perguntas)
+   - Reseta os indicadores de progresso para o estado inicial (5 steps)
    - Desabilita o botão "Mapear"
    - Limpa os containers de resultado
    - Alterna a visibilidade das seções
    ============================================================= */
 function resetDiagnostico() {
-  // Limpa os radio inputs
   document.querySelectorAll('input[type="radio"]').forEach(function (r) { r.checked = false; });
 
-  // Reseta indicadores de progresso
   const inativo = 'w-8 h-8 rounded-full bg-gray-200 text-gray-400 text-sm font-bold flex items-center justify-center transition-all';
-  ['step-2', 'step-3'].forEach(function (id) {
+  ['step-2', 'step-3', 'step-4', 'step-5'].forEach(function (id) {
     document.getElementById(id).className = inativo;
   });
   document.getElementById('step-1').className = 'w-8 h-8 rounded-full bg-navy text-white text-sm font-bold flex items-center justify-center transition-all';
-  ['line-1-2', 'line-2-3'].forEach(function (id) {
-    document.getElementById(id).className = 'h-0.5 w-8 bg-gray-200 transition-all';
-  });
-  document.getElementById('step-2-label').className = 'text-xs font-medium text-gray-400 hidden sm:block';
-  document.getElementById('step-3-label').className = 'text-xs font-medium text-gray-400 hidden sm:block';
 
-  // Reseta o botão
+  ['line-1-2', 'line-2-3', 'line-3-4', 'line-4-5'].forEach(function (id) {
+    document.getElementById(id).className = 'h-0.5 w-6 bg-gray-200 transition-all flex-shrink-0';
+  });
+
+  ['step-2-label', 'step-3-label', 'step-4-label', 'step-5-label'].forEach(function (id) {
+    document.getElementById(id).className = 'text-xs font-medium text-gray-400 hidden sm:block';
+  });
+
   const btn = document.getElementById('btn-mapear');
   btn.disabled  = true;
   btn.className = 'w-full flex items-center justify-center gap-3 px-8 py-4 rounded-xl font-bold text-base bg-gray-100 text-gray-400 cursor-not-allowed transition-all duration-300';
-  document.getElementById('btn-hint').textContent = 'Preencha as 3 perguntas para habilitar o mapeamento';
-  document.getElementById('btn-hint').className   = 'text-center text-xs text-gray-400 mt-3';
 
-  // Limpa os resultados
+  const hint = document.getElementById('btn-hint');
+  hint.textContent = 'Preencha as 5 perguntas para habilitar o mapeamento';
+  hint.className   = 'text-center text-xs text-gray-400 mt-3';
+
   document.getElementById('resultados-container').innerHTML = '';
   document.getElementById('resultado-header').innerHTML     = '';
-
-  // Restaura o form-card
   document.getElementById('form-card').classList.remove('opacity-50', 'pointer-events-none');
-
-  // Alterna seções
   document.getElementById('resultado-section').classList.add('hidden');
   document.getElementById('diagnostico').classList.remove('hidden');
 
-  // Scroll de volta ao formulário
   setTimeout(function () {
     document.getElementById('diagnostico').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 100);
